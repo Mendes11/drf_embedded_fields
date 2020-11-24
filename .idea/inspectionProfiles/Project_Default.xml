@@ -1,0 +1,27 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyCallingNonCallableInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="false" level="WARNING" enabled_by_default="false">
+      <option name="ignoredPackages">
+        <value>
+          <list size="0" />
+        </value>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredIdentifiers">
+        <list>
+          <option value="b_commons.dependency_providers.s3.S3Dependencies.*" />
+          <option value="django_nameko_standalone.DjangoModels.*" />
+          <option value="services.dependency_providers.data_api.DataAPIDependencies.*" />
+          <option value="nameko.dependency_providers.Config.*" />
+          <option value="b_commons.dependency_providers.nameko_logger.NamekoLogger.*" />
+          <option value="nameko.rpc.RpcProxy.*" />
+          <option value="log.nameko_logger.NamekoLogger.*" />
+          <option value="b_commons.dependency_providers.common_dispatcher.CalcResultDispatcher.*" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
