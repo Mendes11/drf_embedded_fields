@@ -3,14 +3,17 @@ from unittest.mock import patch, call
 from rest_framework.test import APIClient, APITestCase
 
 from drf_embedded_fields.fields import APIEmbeddedMixin
-from test_app.models import ParentModel, ChildModel
+from test_app.models import ParentModel, ChildModel, RootModel
 
 
 class TestEmbeddedAPI(APITestCase):
     def setUp(self) -> None:
         self.c = APIClient()
-        self.parent1 = ParentModel.objects.create(str_field="Parent 1")
-        self.parent2 = ParentModel.objects.create(str_field="Parent 2")
+        self.root = RootModel.objects.create(name="Test Root")
+        self.parent1 = ParentModel.objects.create(str_field="Parent 1",
+                                                  root=self.root)
+        self.parent2 = ParentModel.objects.create(str_field="Parent 2",
+                                                  root=self.root)
         self.child1 = ChildModel.objects.create(
             parent=self.parent1,
             external_api_field=1
