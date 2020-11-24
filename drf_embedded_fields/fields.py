@@ -7,30 +7,45 @@ from drf_embedded_fields.exceptions import CustomAPIException, \
 
 
 class EmbeddedField(serializers.Field):
-    def __init__(self, field, embedded_serializer=None, **kwargs):
+    """
+    EmbeddedField will either return to representation the original field or
+    an embedded version of it.
+
+    The returned value is determined by the embed argument:
+        When it is True, it returns the content from get_embedded_value,
+        optionally being rendered by the embedded_serializer passed.
+
+        When it is False, it will return the value rendered by the field
+        argument.
+
+    """
+    def __init__(
+            self, field, embedded_serializer=None, embed=False, **kwargs
+    ):
         super(EmbeddedField, self).__init__(**kwargs)
+        self.embed = embed
+        self.embed_relations = None
         self.original_field = field
-        self.embedded_serializer = embedded_serializer or \
-                                   serializers.DictField()
+        self.embedded_serializer = embedded_serializer
 
     def get_embedded_value(self, value):
         return value
 
     def to_representation(self, value):
-        name = self.field_name
-
-        embedded_fields = self.parent.context["request"].query_params.getlist(
-            "embed")
-
-        if name in embedded_fields:
-            return self.embedded_serializer.to_representation(
-                self.get_embedded_value(value)
-            )
+        if self.embed:
+            if self.embedded_serializer:
+                return self.embedded_serializer.to_representation(
+                    self.get_embedded_value(value)
+                )
+            return self.get_embedded_value(value)
 
         return self.original_field.to_representation(value)
 
 
 class APIEmbeddedMixin:
+    """
+    Methods to do a HTTP request to retrieve an APIEmbeddedField content.
+    """
     def raise_from_response(self, response,
                             default_exception=APIException):
         status_code = response.status_code
@@ -70,6 +85,13 @@ class APIEmbeddedMixin:
 
 
 class APIResourceEmbeddedField(APIEmbeddedMixin, EmbeddedField):
+    """
+    This version of EmbeddedField will retrieve the embedded content from an
+    external API.
+
+    It is useful for distributed systems that need to retrieve data with more
+    information for front-end purposes.
+    """
     def __init__(self, url, field, method="get", included_headers=None,
                  **kwargs):
         super(APIResourceEmbeddedField, self).__init__(field, **kwargs)
@@ -86,9 +108,17 @@ class APIResourceEmbeddedField(APIEmbeddedMixin, EmbeddedField):
     def get_url(self, value):
         return self.url.format(**self.get_url_kwargs(value))
 
+    def get_request(self):
+        """
+        Retrieves the current request instance, to enable us to retrieve the
+        headers to be used.
+        :return:
+        """
+        return self.parent.context["request"]
+
     def get_embedded_value(self, value):
         url = self.get_url(value)
-        request = self.parent.context["request"]
+        request = self.get_request()
 
         headers = {
             header: request.headers.get(header)
@@ -98,12 +128,3 @@ class APIResourceEmbeddedField(APIEmbeddedMixin, EmbeddedField):
         return super(APIResourceEmbeddedField, self).get_embedded_value(
             embedded_data
         )
-
-
-class EmbeddableSerializer:
-    def __init__(self, *args, **kwargs):
-        super(EmbeddableSerializer, self).__init__(*args, **kwargs)
-        assert "request" in self.context, "This serializer requires that the " \
-                                          "request is sent in the context."
-        request = self.context["request"]
-        embedded_fields = request.query_params.getlist("embed")
