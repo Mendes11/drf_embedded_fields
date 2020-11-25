@@ -54,23 +54,66 @@ class TestEmbeddedAPI(APITestCase):
                 {"id": 1,
                  "parent": {
                      "id": 1,
-                     "str_field": "Parent 1"
+                     "str_field": "Parent 1",
+                     "root": 1
                  },
                  "external_api_field": 1},
                 {"id": 2,
                  "parent": {
                      "id": 1,
-                     "str_field": "Parent 1"
+                     "str_field": "Parent 1",
+                     "root": 1
                  },
                  "external_api_field": 2},
                 {"id": 3,
                  "parent": {
                      "id": 2,
-                     "str_field": "Parent 2"
+                     "str_field": "Parent 2",
+                     "root": 1
                  },
                  "external_api_field": 1},
             ]
         )
+
+    def test_retrieve_from_list_embed_parent_root(self):
+        res = self.c.get("/list/?embed=parent.root")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(
+            res.json(),
+            [
+                {"id": 1,
+                 "parent": {
+                     "id": 1,
+                     "str_field": "Parent 1",
+                     "root": {
+                         "id": 1,
+                         "name": "Test Root"
+                     }
+                 },
+                 "external_api_field": 1},
+                {"id": 2,
+                 "parent": {
+                     "id": 1,
+                     "str_field": "Parent 1",
+                     "root": {
+                         "id": 1,
+                         "name": "Test Root"
+                     }
+                 },
+                 "external_api_field": 2},
+                {"id": 3,
+                 "parent": {
+                     "id": 2,
+                     "str_field": "Parent 2",
+                     "root": {
+                         "id": 1,
+                         "name": "Test Root"
+                     }
+                 },
+                 "external_api_field": 1},
+            ]
+        )
+
 
     @patch.object(APIEmbeddedMixin, "get_from_api")
     def test_retrieve_from_list_embed_external(self, get_from_api):
@@ -96,9 +139,12 @@ class TestEmbeddedAPI(APITestCase):
         )
         get_from_api.assert_has_calls(
             [
-                call("http://test-endpoint/api/v1/1/", "get", headers={}),
-                call("http://test-endpoint/api/v1/2/", "get", headers={}),
-                call("http://test-endpoint/api/v1/1/", "get", headers={}),
+                call("http://test-endpoint/api/v1/1/", "get", headers={},
+                     params={"embed": []}),
+                call("http://test-endpoint/api/v1/2/", "get", headers={},
+                     params = {"embed": []}),
+                call("http://test-endpoint/api/v1/1/", "get", headers={},
+                     params={"embed": []}),
             ],
         )
 
@@ -117,27 +163,24 @@ class TestEmbeddedAPI(APITestCase):
         get_from_api.assert_has_calls(
             [
                 call("http://test-endpoint/api/v1/1/", "get",
-                     headers={"Authorization": "Bearer TokenHere"}),
+                     headers={"Authorization": "Bearer TokenHere"},
+                     params={"embed": []}),
                 call("http://test-endpoint/api/v1/2/", "get",
-                     headers={"Authorization": "Bearer TokenHere"}),
+                     headers={"Authorization": "Bearer TokenHere"},
+                     params={"embed": []}),
                 call("http://test-endpoint/api/v1/1/", "get",
-                     headers={"Authorization": "Bearer TokenHere"}),
+                     headers={"Authorization": "Bearer TokenHere"},
+                     params={"embed": []}),
             ],
         )
 
     @patch.object(APIEmbeddedMixin, "get_from_api")
-    def test_retrieve_from_list_using_serializer(self, get_from_api):
-        self.embedded_external_1["not_used_field"] = 1
-        self.embedded_external_2["not_used_field"] = 2
+    def test_retrieve_from_list_embed_external_nesting(self, get_from_api):
         get_from_api.side_effect = [
             self.embedded_external_1, self.embedded_external_1,
             self.embedded_external_2
         ]
-        res = self.c.get(
-            "/list/with-serializer/?embed=external_api_field",
-        )
-        del self.embedded_external_1["not_used_field"]
-        del self.embedded_external_2["not_used_field"]
+        res = self.c.get("/list/?embed=external_api_field.other_field")
         self.assertEqual(res.status_code, 200)
         self.assertEqual(
             res.json(),
@@ -152,4 +195,14 @@ class TestEmbeddedAPI(APITestCase):
                  "parent": 2,
                  "external_api_field": self.embedded_external_2},
             ]
+        )
+        get_from_api.assert_has_calls(
+            [
+                call("http://test-endpoint/api/v1/1/",
+                     "get", headers={}, params={"embed": ["other_field"]}),
+                call("http://test-endpoint/api/v1/2/",
+                     "get", headers={}, params={"embed": ["other_field"]}),
+                call("http://test-endpoint/api/v1/1/",
+                     "get", headers={}, params={"embed": ["other_field"]}),
+            ],
         )
