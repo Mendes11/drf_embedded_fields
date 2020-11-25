@@ -1,9 +1,0 @@
-setup.cfg
-setup.py
-DRF_Embedded_Fields.egg-info/PKG-INFO
-DRF_Embedded_Fields.egg-info/SOURCES.txt
-DRF_Embedded_Fields.egg-info/dependency_links.txt
-DRF_Embedded_Fields.egg-info/top_level.txt
-drf_embedded_fields/__init__.py
-drf_embedded_fields/exceptions.py
-drf_embedded_fields/fields.py
