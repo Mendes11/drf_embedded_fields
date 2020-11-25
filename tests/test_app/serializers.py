@@ -1,8 +1,8 @@
 from rest_framework import serializers
 
-from drf_embedded_fields.fields import EmbeddedField, APIResourceEmbeddedField, \
-    EmbeddableModelSerializer
-from test_app.models import ParentModel, ChildModel
+from drf_embedded_fields.api_fields import APIResourceIntField
+from drf_embedded_fields.model_fields import EmbeddableModelSerializer
+from test_app.models import ParentModel, ChildModel, ManyModel
 
 
 class ExternalAPISerializer(serializers.Serializer):
@@ -17,9 +17,8 @@ class ParentSerializer(EmbeddableModelSerializer):
 
 
 class ChildSerializer(EmbeddableModelSerializer):
-    external_api_field = APIResourceEmbeddedField(
-        serializers.IntegerField(),
-        "http://test-endpoint/api/v1/{id}/",
+    external_api_field = APIResourceIntField(
+        url="http://test-endpoint/api/v1/{id}/",
         included_headers=["Authorization"]
     )
 
@@ -29,8 +28,13 @@ class ChildSerializer(EmbeddableModelSerializer):
 
 
 class ChildSerializerWithSerializer(ChildSerializer):
-    external_api_field = APIResourceEmbeddedField(
-        serializers.IntegerField(),
-        "http://test-endpoint/api/v1/{id}/",
+    external_api_field = APIResourceIntField(
+        url="http://test-endpoint/api/v1/{id}/",
         included_headers=["Authorization"],
     )
+
+
+class ManySerializer(EmbeddableModelSerializer):
+    class Meta:
+        model = ManyModel
+        fields = "__all__"

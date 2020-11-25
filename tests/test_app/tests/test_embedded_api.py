@@ -2,8 +2,8 @@ from unittest.mock import patch, call
 
 from rest_framework.test import APIClient, APITestCase
 
-from drf_embedded_fields.fields import APIEmbeddedMixin
-from test_app.models import ParentModel, ChildModel, RootModel
+from drf_embedded_fields.api_fields import APIEmbeddedMixin
+from test_app.models import ParentModel, ChildModel, RootModel, ManyModel
 
 
 class TestEmbeddedAPI(APITestCase):
@@ -26,6 +26,8 @@ class TestEmbeddedAPI(APITestCase):
             parent=self.parent2,
             external_api_field=1
         )
+        self.many = ManyModel.objects.create()
+        self.many.children.add(self.child1, self.child2, self.child3)
         self.embedded_external_1 = {
             "id": 1, "field_1": "TestExternalAPI"
         }
@@ -114,7 +116,6 @@ class TestEmbeddedAPI(APITestCase):
             ]
         )
 
-
     @patch.object(APIEmbeddedMixin, "get_from_api")
     def test_retrieve_from_list_embed_external(self, get_from_api):
         get_from_api.side_effect = [
@@ -142,7 +143,7 @@ class TestEmbeddedAPI(APITestCase):
                 call("http://test-endpoint/api/v1/1/", "get", headers={},
                      params={"embed": []}),
                 call("http://test-endpoint/api/v1/2/", "get", headers={},
-                     params = {"embed": []}),
+                     params={"embed": []}),
                 call("http://test-endpoint/api/v1/1/", "get", headers={},
                      params={"embed": []}),
             ],
@@ -205,4 +206,67 @@ class TestEmbeddedAPI(APITestCase):
                 call("http://test-endpoint/api/v1/1/",
                      "get", headers={}, params={"embed": ["other_field"]}),
             ],
+        )
+
+    def test_retrieve_from_many(self):
+        res = self.c.get("/list/many/?embed=children")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(
+            res.json(),
+            [{
+                "id": 1,
+                "children": [
+                    {"id": 1,
+                     "parent": 1,
+                     "external_api_field": 1},
+                    {"id": 2,
+                     "parent": 1,
+                     "external_api_field": 2},
+                    {"id": 3,
+                     "parent": 2,
+                     "external_api_field": 1},
+                ]}]
+        )
+
+    def test_retrieve_from_many_nested(self):
+        res = self.c.get(
+            "/list/many/?embed=children.parent&embed=children.external_api_field"
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(
+            res.json(),
+            [{
+                "id": 1,
+                "children": [
+                    {"id": 1,
+                     "parent": {
+                         "id": 1,
+                         "str_field": "Parent 1",
+                         "root": 1
+                     },
+                     "external_api_field": 1},
+                    {"id": 2,
+                     "parent": {
+                         "id": 1,
+                         "str_field": "Parent 1",
+                         "root": 1
+                     },
+                     "external_api_field": 2},
+                    {"id": 3,
+                     "parent": {
+                         "id": 2,
+                         "str_field": "Parent 2",
+                         "root": 1
+                     },
+                     "external_api_field": 1},
+                ]
+            }]
+        )
+
+    def test_retrieve_from_many_not_embedded(self):
+        res = self.c.get("/list/many/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(
+            res.json(),
+            [{"id": 1, "children": [1, 2, 3]}]
         )

@@ -13,3 +13,7 @@ class ParentModel(models.Model):
 class ChildModel(models.Model):
     parent = models.ForeignKey(ParentModel, on_delete=models.CASCADE)
     external_api_field = models.IntegerField()
+
+
+class ManyModel(models.Model):
+    children = models.ManyToManyField(ChildModel)
